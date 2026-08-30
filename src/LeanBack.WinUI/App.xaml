@@ -1,0 +1,73 @@
+<Application
+    x:Class="LeanBack.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    RequestedTheme="Dark">
+    <!--
+        LeanBack is dark by brand, not by system preference. The light and high-contrast
+        dictionaries below are fully authored, so dropping this RequestedTheme is all it
+        takes to follow the OS instead.
+    -->
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <ResourceDictionary Source="ms-appx:///Themes/Brand.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--
+                Re-point the whole Fluent accent ramp at LeanBack's cyan so stock controls —
+                SelectorBar underline, CheckBox, RadioButtons, ProgressBar, AccentButton —
+                brand themselves without any control template being rewritten.
+
+                The two themes need different cyans. Dark uses the bright #22D3EE with deep
+                ink sitting on it; light uses a deeper #0891B2 so white text on an accent
+                fill still clears 4.5:1. Getting this backwards makes every accent button
+                unreadable, so the on-accent text colour is themed alongside the fill.
+            -->
+            <ResourceDictionary.ThemeDictionaries>
+
+                <ResourceDictionary x:Key="Default">
+                    <Color x:Key="SystemAccentColor">#FF0891B2</Color>
+                    <Color x:Key="SystemAccentColorLight1">#FF22D3EE</Color>
+                    <Color x:Key="SystemAccentColorLight2">#FF4EDDF2</Color>
+                    <Color x:Key="SystemAccentColorLight3">#FF7BE7F6</Color>
+                    <Color x:Key="SystemAccentColorDark1">#FF0E7490</Color>
+                    <Color x:Key="SystemAccentColorDark2">#FF0B5E75</Color>
+                    <Color x:Key="SystemAccentColorDark3">#FF08475A</Color>
+
+                    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#FF0891B2" />
+                    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E60891B2" />
+                    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#CC0891B2" />
+                    <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#FF0E7490" />
+                    <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#FF0B5E75" />
+
+                    <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FFFFFFFF" />
+                    <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Color="#DDFFFFFF" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="Dark">
+                    <Color x:Key="SystemAccentColor">#FF22D3EE</Color>
+                    <Color x:Key="SystemAccentColorLight1">#FF4EDDF2</Color>
+                    <Color x:Key="SystemAccentColorLight2">#FF7BE7F6</Color>
+                    <Color x:Key="SystemAccentColorLight3">#FFA8F0F9</Color>
+                    <Color x:Key="SystemAccentColorDark1">#FF0891B2</Color>
+                    <Color x:Key="SystemAccentColorDark2">#FF0672A8</Color>
+                    <Color x:Key="SystemAccentColorDark3">#FF045A85</Color>
+
+                    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="#FF22D3EE" />
+                    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="#E622D3EE" />
+                    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="#CC22D3EE" />
+                    <SolidColorBrush x:Key="AccentTextFillColorPrimaryBrush" Color="#FF22D3EE" />
+                    <SolidColorBrush x:Key="AccentTextFillColorSecondaryBrush" Color="#FF4EDDF2" />
+
+                    <!-- White on #22D3EE is ~1.7:1; deep ink gets past 10:1. -->
+                    <SolidColorBrush x:Key="TextOnAccentFillColorPrimaryBrush" Color="#FF07141F" />
+                    <SolidColorBrush x:Key="TextOnAccentFillColorSecondaryBrush" Color="#CC07141F" />
+                </ResourceDictionary>
+
+                <ResourceDictionary x:Key="HighContrast" />
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

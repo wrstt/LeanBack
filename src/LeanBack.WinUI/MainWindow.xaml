@@ -1,0 +1,439 @@
+<Window
+    x:Class="LeanBack.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:vm="using:LeanBack.ViewModels"
+    xmlns:engine="using:LeanBack.Engine"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop Kind="BaseAlt" />
+    </Window.SystemBackdrop>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Draggable strip only; Windows still draws the caption buttons, so Snap Layouts work. -->
+        <Grid x:Name="AppTitleBar" Grid.Row="0" Height="48" Padding="18,0">
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Image Source="ms-appx:///Assets/leanback.ico" Width="18" Height="18" />
+                <TextBlock Text="LeanBack" FontSize="13" FontWeight="SemiBold"
+                           Foreground="{ThemeResource Ftext}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- ============================================================ SETUP -->
+            <Grid Visibility="{x:Bind Vis(Vm.IsSetup), Mode=OneWay}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- mode + destination -->
+                <Grid Grid.Row="0" Padding="24,2,24,12" ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <SelectorBar x:Name="ModeBar" Grid.Column="0" SelectionChanged="OnModeChanged">
+                        <SelectorBarItem x:Name="SimpleTab" Text="Simple" />
+                        <SelectorBarItem x:Name="AdvancedTab" Text="Advanced" />
+                    </SelectorBar>
+
+                    <ComboBox Grid.Column="1"
+                              HorizontalAlignment="Stretch"
+                              CornerRadius="8"
+                              PlaceholderText="No destination drives"
+                              ItemsSource="{x:Bind Vm.Drives}"
+                              SelectedItem="{x:Bind Vm.DestDrive, Mode=TwoWay}"
+                              DisplayMemberPath="Display"
+                              ToolTipService.ToolTip="Where the backup gets written" />
+                </Grid>
+
+                <!--
+                    THE SIGNATURE. LeanBack's whole point is how little it copies, so the
+                    ratio is the largest thing on screen and moves as rows are toggled.
+                -->
+                <Border Grid.Row="1" Margin="24,0,24,13" Padding="18,14,18,15"
+                        Style="{StaticResource Card}"
+                        Visibility="{x:Bind Vis(Vm.HasScan), Mode=OneWay}">
+                    <StackPanel Spacing="11">
+                        <Grid>
+                            <StackPanel Orientation="Horizontal" Spacing="9" VerticalAlignment="Bottom">
+                                <TextBlock Text="{x:Bind Vm.KeptText, Mode=OneWay}"
+                                           FontSize="40" FontWeight="SemiBold" LineHeight="42"
+                                           Foreground="{ThemeResource Cyan}" />
+                                <TextBlock Text="of" Style="{StaticResource Mono}"
+                                           VerticalAlignment="Bottom" Margin="0,0,0,7"
+                                           Foreground="{ThemeResource FtextFaint}" />
+                                <TextBlock Text="{x:Bind Vm.TotalText, Mode=OneWay}"
+                                           Style="{StaticResource Mono}" VerticalAlignment="Bottom"
+                                           Margin="0,0,0,7" />
+                            </StackPanel>
+                            <TextBlock Text="{x:Bind Vm.PctText, Mode=OneWay}"
+                                       Style="{StaticResource MonoTiny}"
+                                       Foreground="{ThemeResource Amber}"
+                                       HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                       Margin="0,0,0,8" />
+                        </Grid>
+
+                        <Grid Height="10" ColumnSpacing="3">
+                            <Grid.ChildrenTransitions>
+                                <RepositionThemeTransition />
+                            </Grid.ChildrenTransitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="{x:Bind Vm.KeptStar, Mode=OneWay}" />
+                                <ColumnDefinition Width="{x:Bind Vm.SkippedStar, Mode=OneWay}" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" CornerRadius="5" Background="{ThemeResource CtaFill}" />
+                            <Border Grid.Column="1" CornerRadius="5" Background="{ThemeResource AmberDim}" />
+                        </Grid>
+
+                        <Grid>
+                            <TextBlock Text="COPYING" Style="{StaticResource MonoTiny}"
+                                       Foreground="{ThemeResource Cyan}" />
+                            <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Right">
+                                <TextBlock Text="{x:Bind Vm.SkippedText, Mode=OneWay}"
+                                           Style="{StaticResource MonoTiny}"
+                                           Foreground="{ThemeResource Amber}" />
+                                <TextBlock Text="REGENERABLE" Style="{StaticResource MonoTiny}"
+                                           Foreground="{ThemeResource FtextFaint}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <ScrollViewer Grid.Row="2" Padding="24,0,24,0">
+                    <StackPanel Spacing="15">
+
+                        <!-- projects -->
+                        <StackPanel>
+                            <TextBlock Text="PROJECT" Style="{StaticResource Eyebrow}" />
+
+                            <ListView ItemsSource="{x:Bind Vm.Projects}"
+                                      SelectedItem="{x:Bind Vm.SelectedProject, Mode=TwoWay}"
+                                      SelectionMode="Single">
+                                <ListView.ItemContainerStyle>
+                                    <Style TargetType="ListViewItem">
+                                        <Setter Property="Margin" Value="0,0,0,5" />
+                                        <Setter Property="Padding" Value="12,9" />
+                                        <Setter Property="CornerRadius" Value="9" />
+                                        <Setter Property="Background" Value="{ThemeResource RowFill}" />
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    </Style>
+                                </ListView.ItemContainerStyle>
+                                <ListView.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:ProjectItem">
+                                        <Grid ColumnSpacing="13">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0" Spacing="2">
+                                                <TextBlock Text="{x:Bind Name}" FontSize="14" FontWeight="SemiBold"
+                                                           Foreground="{ThemeResource Ftext}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Text="{x:Bind Path}" Style="{StaticResource MonoTiny}"
+                                                           TextTrimming="CharacterEllipsis" />
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{x:Bind SizeText}"
+                                                       Style="{StaticResource Mono}" VerticalAlignment="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+
+                            <Button Command="{x:Bind Vm.BrowseCommand}" HorizontalAlignment="Stretch"
+                                    Background="Transparent" CornerRadius="9" Padding="12,10"
+                                    BorderBrush="{ThemeResource Hairline}">
+                                <StackPanel Orientation="Horizontal" Spacing="9">
+                                    <FontIcon Glyph="&#xE838;" FontSize="14"
+                                              Foreground="{ThemeResource Cyan}" />
+                                    <TextBlock Text="Choose another folder" Foreground="{ThemeResource FtextDim}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <!-- scanning -->
+                        <StackPanel Orientation="Horizontal" Spacing="11"
+                                    Visibility="{x:Bind Vis(Vm.Scanning), Mode=OneWay}">
+                            <ProgressRing IsActive="True" Width="15" Height="15"
+                                          Foreground="{ThemeResource Cyan}" />
+                            <TextBlock Text="{x:Bind Vm.ScanStatus, Mode=OneWay}"
+                                       Style="{StaticResource Mono}" VerticalAlignment="Center" />
+                        </StackPanel>
+
+                        <!-- ==================================== ADVANCED ONLY -->
+                        <StackPanel Spacing="15" Visibility="{x:Bind Vis(Vm.IsAdvanced), Mode=OneWay}">
+
+                            <StackPanel Visibility="{x:Bind Vis(Vm.HasScan), Mode=OneWay}">
+                                <TextBlock Text="LEAVING BEHIND" Style="{StaticResource Eyebrow}" />
+
+                                <ItemsControl ItemsSource="{x:Bind Vm.SkipRows}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SkipRow">
+                                            <Border Background="{ThemeResource RowFill}" CornerRadius="9"
+                                                    Padding="10,7" Margin="0,0,0,5">
+                                                <Grid ColumnSpacing="11">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <CheckBox Grid.Column="0" MinWidth="0"
+                                                              IsChecked="{x:Bind IsSkipped, Mode=TwoWay}" />
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Rel}"
+                                                               Style="{StaticResource Mono}"
+                                                               Foreground="{ThemeResource Ftext}"
+                                                               VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                    <Border Grid.Column="2" Style="{StaticResource Chip}">
+                                                        <TextBlock Text="{x:Bind Reason}"
+                                                                   Style="{StaticResource MonoTiny}"
+                                                                   Foreground="{ThemeResource Amber}" />
+                                                    </Border>
+                                                    <TextBlock Grid.Column="3" Text="{x:Bind SizeText}"
+                                                               Style="{StaticResource Mono}"
+                                                               Foreground="{ThemeResource Amber}"
+                                                               MinWidth="62" TextAlignment="Right"
+                                                               VerticalAlignment="Center" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <CheckBox Content="Skip .git history" Margin="2,4,0,0"
+                                          IsChecked="{x:Bind Vm.SkipGit, Mode=TwoWay}"
+                                          Visibility="{x:Bind Vis(Vm.HasGit), Mode=OneWay}" />
+                            </StackPanel>
+
+                            <!-- custom patterns -->
+                            <StackPanel>
+                                <TextBlock Text="ALSO SKIP" Style="{StaticResource Eyebrow}" />
+                                <Grid ColumnSpacing="8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Grid.Column="0" CornerRadius="8"
+                                             FontFamily="{StaticResource MonoFace}" FontSize="12"
+                                             PlaceholderText="coverage/ or *.log"
+                                             Text="{x:Bind Vm.CustomInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             KeyDown="OnCustomKeyDown" />
+                                    <Button Grid.Column="1" Content="Add" CornerRadius="8" Padding="16,8"
+                                            Command="{x:Bind Vm.AddCustomCommand}" />
+                                </Grid>
+                                <ItemsControl ItemsSource="{x:Bind Vm.CustomPatterns}" Margin="0,8,0,0">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="x:String">
+                                            <Grid ColumnSpacing="8" Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0" Text="{x:Bind}"
+                                                           Style="{StaticResource Mono}"
+                                                           Foreground="{ThemeResource Amber}"
+                                                           VerticalAlignment="Center" />
+                                                <Button Grid.Column="1" Click="OnRemoveCustom" Tag="{x:Bind}"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Padding="7" CornerRadius="6"
+                                                        ToolTipService.ToolTip="Remove pattern">
+                                                    <FontIcon Glyph="&#xE711;" FontSize="11"
+                                                              Foreground="{ThemeResource FtextFaint}" />
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+
+                            <!-- format -->
+                            <StackPanel>
+                                <TextBlock Text="FORMAT" Style="{StaticResource Eyebrow}" />
+                                <RadioButtons SelectedIndex="{x:Bind Vm.FormatIndex, Mode=TwoWay}" MaxColumns="2">
+                                    <x:String>Folder copy</x:String>
+                                    <x:String>Single .zip</x:String>
+                                </RadioButtons>
+                            </StackPanel>
+
+                            <!-- history -->
+                            <StackPanel Visibility="{x:Bind VisAny(Vm.History.Count), Mode=OneWay}">
+                                <TextBlock Text="PREVIOUS BACKUPS" Style="{StaticResource Eyebrow}" />
+                                <ItemsControl ItemsSource="{x:Bind Vm.History}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:HistoryItem">
+                                            <Border Background="{ThemeResource RowFill}" CornerRadius="9"
+                                                    Padding="14,10" Margin="0,0,0,6">
+                                                <Grid ColumnSpacing="12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0" Spacing="2">
+                                                        <TextBlock Text="{x:Bind Name}"
+                                                                   Style="{StaticResource Mono}"
+                                                                   Foreground="{ThemeResource Ftext}"
+                                                                   TextTrimming="CharacterEllipsis" />
+                                                        <TextBlock Text="{x:Bind WhenText}"
+                                                                   Style="{StaticResource MonoTiny}" />
+                                                    </StackPanel>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind SizeText}"
+                                                               Style="{StaticResource Mono}"
+                                                               VerticalAlignment="Center" />
+                                                    <Button Grid.Column="2" Content="Restore" CornerRadius="8"
+                                                            Padding="14,6" Click="OnRestoreClick" Tag="{x:Bind}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <Rectangle Height="4" Fill="Transparent" />
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- CTA -->
+                <Border Grid.Row="3" Padding="24,12,24,16"
+                        BorderThickness="0,1,0,0" BorderBrush="{ThemeResource Hairline}">
+                    <Button Content="{x:Bind Vm.CtaLabel, Mode=OneWay}"
+                            Command="{x:Bind Vm.BackupCommand}"
+                            IsEnabled="{x:Bind Vm.CanBackup, Mode=OneWay}"
+                            Style="{StaticResource AccentButtonStyle}"
+                            HorizontalAlignment="Stretch"
+                            CornerRadius="10" Padding="16,13"
+                            FontSize="15" FontWeight="SemiBold" />
+                </Border>
+            </Grid>
+
+            <!-- ============================================================ RUNNING -->
+            <Grid Visibility="{x:Bind Vis(Vm.IsRunning), Mode=OneWay}" Padding="40">
+                <StackPanel VerticalAlignment="Center" Spacing="26" MaxWidth="430">
+                    <StackPanel Spacing="6">
+                        <TextBlock Text="{x:Bind Vm.RunTitle, Mode=OneWay}"
+                                   FontSize="22" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource Ftext}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{x:Bind Vm.RunSubtitle, Mode=OneWay}"
+                                   Style="{StaticResource Mono}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="10">
+                        <ProgressBar Value="{x:Bind Vm.RunPercent, Mode=OneWay}" Maximum="100"
+                                     Height="6" CornerRadius="3"
+                                     Foreground="{ThemeResource Cyan}" />
+                        <TextBlock Text="{x:Bind Vm.RunDetail, Mode=OneWay}"
+                                   Style="{StaticResource MonoTiny}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <ItemsControl ItemsSource="{x:Bind Vm.Steps}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RunStep">
+                                <Grid ColumnSpacing="13" Padding="0,7">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="18" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid Grid.Column="0" Width="16" Height="16">
+                                        <Ellipse Width="7" Height="7"
+                                                 Fill="{ThemeResource Hairline}"
+                                                 Visibility="{x:Bind Pending, Mode=OneWay}" />
+                                        <FontIcon Glyph="&#xE73E;" FontSize="14"
+                                                  Foreground="{ThemeResource Cyan}"
+                                                  Visibility="{x:Bind IsDone, Mode=OneWay}" />
+                                        <ProgressRing IsActive="True" Width="16" Height="16"
+                                                      Foreground="{ThemeResource Cyan}"
+                                                      Visibility="{x:Bind IsActive, Mode=OneWay}" />
+                                    </Grid>
+                                    <TextBlock Grid.Column="1" Text="{x:Bind Label, Mode=OneWay}"
+                                               Style="{StaticResource Mono}"
+                                               Foreground="{ThemeResource Ftext}"
+                                               VerticalAlignment="Center" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Button Content="Cancel" Command="{x:Bind Vm.CancelCommand}"
+                            HorizontalAlignment="Center" CornerRadius="8" Padding="22,8" />
+                </StackPanel>
+            </Grid>
+
+            <!-- ============================================================ DONE -->
+            <Grid Visibility="{x:Bind Vis(Vm.IsDone), Mode=OneWay}" Padding="40">
+                <Grid.ChildrenTransitions>
+                    <EntranceThemeTransition FromVerticalOffset="18" />
+                </Grid.ChildrenTransitions>
+                <StackPanel VerticalAlignment="Center" Spacing="22" MaxWidth="450">
+
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="Nothing lost." FontSize="42" FontWeight="SemiBold"
+                                   Foreground="{ThemeResource Cyan}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{x:Bind Vm.DoneName, Mode=OneWay}"
+                                   Style="{StaticResource Mono}"
+                                   Foreground="{ThemeResource Ftext}"
+                                   HorizontalAlignment="Center" />
+                        <TextBlock Text="{x:Bind Vm.DoneStats, Mode=OneWay}"
+                                   Style="{StaticResource MonoTiny}"
+                                   HorizontalAlignment="Center" />
+                    </StackPanel>
+
+                    <StackPanel Visibility="{x:Bind VisAny(Vm.RegenCmds.Count), Mode=OneWay}">
+                        <TextBlock Text="TO BRING BACK THE REST" Style="{StaticResource Eyebrow}"
+                                   HorizontalAlignment="Center" />
+                        <ItemsControl ItemsSource="{x:Bind Vm.RegenCmds}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="engine:RegenCmd">
+                                    <Border Background="{ThemeResource RowFill}" CornerRadius="9"
+                                            Padding="14,10" Margin="0,0,0,6"
+                                            BorderThickness="1,0,0,0" BorderBrush="{ThemeResource Amber}">
+                                        <StackPanel Spacing="3">
+                                            <TextBlock Text="{x:Bind Cmd}" Style="{StaticResource Mono}"
+                                                       Foreground="{ThemeResource Amber}" />
+                                            <TextBlock Text="{x:Bind Brings}" Style="{StaticResource MonoTiny}" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="9" HorizontalAlignment="Center">
+                        <Button Content="Done" Command="{x:Bind Vm.DoneBackCommand}"
+                                Style="{StaticResource AccentButtonStyle}"
+                                CornerRadius="9" Padding="26,10" FontWeight="SemiBold" />
+                        <Button Content="Open backup folder" Command="{x:Bind Vm.OpenBackupCommand}"
+                                CornerRadius="9" Padding="18,10" />
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+
+            <InfoBar Grid.Row="1" Margin="16,0,16,16" CornerRadius="9"
+                     IsOpen="{x:Bind Vm.ToastOpen, Mode=TwoWay}"
+                     Severity="{x:Bind Vm.ToastSeverity, Mode=OneWay}"
+                     Message="{x:Bind Vm.ToastText, Mode=OneWay}" />
+        </Grid>
+    </Grid>
+</Window>
